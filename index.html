@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>くり上がりあり？</title>
+<style>
+  :root {
+    --bg: #f7f7f7;
+    --panel: #ffffff;
+    --shadow: 0 8px 20px rgba(0,0,0,.10);
+    --radius: 16px;
+    --dark: #111;
+    --carry-color: #e05c2a;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: system-ui, -apple-system, "Noto Sans JP", sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    touch-action: manipulation;
+  }
+
+  .wrap {
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 8px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 16px 12px;
+    position: relative;
+  }
+
+  .titleRow {
+    position: relative;
+    min-height: 40px;
+    margin-bottom: 6px;
+  }
+
+  .title {
+    font-weight: 950;
+    font-size: 18px;
+    margin: 0;
+    text-align: center;
+    line-height: 40px;
+  }
+
+  .soundBtn {
+    position: absolute;
+    right: 0;
+    top: 0;
+    border: 0;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 950;
+    cursor: pointer;
+    background: #f1f1f1;
+    color: var(--dark);
+  }
+
+  .soundBtn.off {
+    background: #e9e9e9;
+    color: #666;
+  }
+
+  .topModes {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .modeBtn {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    border-radius: 12px;
+    padding: 10px 8px;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+    background: #ececec;
+    color: var(--dark);
+    transition: transform .12s ease, background .12s ease, color .12s ease;
+    white-space: nowrap;
+  }
+
+  .modeBtn.active {
+    background: var(--dark);
+    color: #fff;
+  }
+
+  .stage {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 12px 0;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 4px 12px rgba(0,0,0,.08);
+    width: 100%;
+    max-width: 300px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 180px;
+  }
+
+  .card::after {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border-radius: 10px;
+    border: 2px solid rgba(0,0,0,.05);
+    pointer-events: none;
+    z-index: 5;
+  }
+
+  .hissan-img {
+    max-width: 200px;
+    max-height: 160px;
+    object-fit: contain;
+    display: block;
+    margin: 0 auto;
+  }
+
+  .messageArea {
+    position: absolute;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: rgba(255,255,255,.95);
+    z-index: 10;
+    border-radius: 14px;
+  }
+
+  .messageArea.show {
+    display: flex;
+  }
+
+  .messageTitle {
+    font-size: clamp(20px, 6vw, 24px);
+    font-weight: 950;
+    line-height: 1.3;
+    margin: 0;
+    white-space: pre-line;
+  }
+
+  .messageSub {
+    margin: 6px 0 0;
+    font-size: 13px;
+    font-weight: 800;
+    color: #555;
+    line-height: 1.5;
+    white-space: pre-line;
+  }
+
+  .resultResetBtn {
+    margin-top: 10px;
+    border: 0;
+    border-radius: 10px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 900;
+    cursor: pointer;
+    background: #efefef;
+    color: var(--dark);
+  }
+
+  .resultResetBtn.hidden { display: none; }
+
+  .controls {
+    display: flex;
+    justify-content: center;
+    margin-top: 10px;
+    margin-bottom: 4px;
+    min-height: 44px;
+  }
+
+  .controls.hidden {
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  .mainBtn {
+    border: 0;
+    border-radius: 12px;
+    font-weight: 950;
+    cursor: pointer;
+    padding: 12px 24px;
+    font-size: 16px;
+    background: var(--dark);
+    color: #fff;
+    min-width: 160px;
+  }
+
+  .mainBtn:disabled { opacity: .55; }
+
+  /* くり上がりボタン */
+  .carryRow {
+    display: flex;
+    justify-content: center;
+    margin: 10px 0 6px;
+  }
+
+  .carryBtn {
+    border: 0;
+    border-radius: 14px;
+    background: var(--carry-color);
+    color: #fff;
+    font-size: 18px;
+    font-weight: 950;
+    padding: 14px 32px;
+    cursor: pointer;
+    width: 100%;
+    max-width: 260px;
+    transition: transform .08s ease, filter .08s ease;
+    box-shadow: 0 4px 12px rgba(224,92,42,.35);
+  }
+
+  .carryBtn:active {
+    transform: scale(0.96);
+    filter: brightness(0.9);
+  }
+
+  .carryBtn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  /* 数字パッド */
+  .pad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 8px auto 0;
+    max-width: 260px;
+  }
+
+  .digitBtn {
+    border: 0;
+    border-radius: 12px;
+    background: #fff;
+    box-shadow: 0 4px 10px rgba(0,0,0,.08);
+    cursor: pointer;
+    padding: 4px;
+    aspect-ratio: 3 / 4;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform .08s ease, filter .08s ease;
+  }
+
+  .digitBtn:active {
+    transform: scale(0.96);
+    filter: brightness(0.95);
+  }
+
+  .digitBtn:disabled {
+    opacity: .5;
+    cursor: not-allowed;
+  }
+
+  .digitBtn img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+  }
+
+  @keyframes shake {
+    0%   { transform: translateX(0); }
+    20%  { transform: translateX(-8px); }
+    40%  { transform: translateX(8px); }
+    60%  { transform: translateX(-6px); }
+    80%  { transform: translateX(6px); }
+    100% { transform: translateX(0); }
+  }
+
+  .shake { animation: shake .22s ease; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <div class="titleRow">
+      <p class="title">くり上がりあり？</p>
+      <button id="soundBtn" class="soundBtn" type="button">
+        <span id="soundIcon">🔊</span>
+        <span id="soundLabel">おと ON</span>
+      </button>
+    </div>
+
+    <div class="topModes">
+      <button id="practiceModeBtn" class="modeBtn active" type="button">れんしゅう</button>
+      <button id="challengeModeBtn" class="modeBtn" type="button">30びょう</button>
+      <button id="noMissModeBtn" class="modeBtn" type="button">ノーミスモード</button>
+    </div>
+
+    <div class="stage">
+      <div class="card" id="shakeTarget">
+        <img id="hissanImg" class="hissan-img" src="" alt="筆算の問題" />
+        <div id="messageArea" class="messageArea">
+          <div>
+            <p id="messageTitle" class="messageTitle"></p>
+            <p id="messageSub" class="messageSub"></p>
+            <button id="resultResetBtn" class="resultResetBtn hidden" type="button">ベストきろくを リセット</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="controls" class="controls hidden">
+      <button id="mainBtn" class="mainBtn" type="button">スタート</button>
+    </div>
+
+    <div class="carryRow">
+      <button id="carryBtn" class="carryBtn" type="button">くり上がり</button>
+    </div>
+
+    <div class="pad" id="pad"></div>
+  </div>
+</div>
+
+<script>
+  const IMG_BASE = "./imgs/";
+  const APPLE_BASE = "https://pokopy-talkpapa.github.io/tashizan-apple/";
+
+  // 問題データ（ファイル番号 → 正解）
+  // answer: 1-9 = 数字ボタン、'carry' = くり上がりボタン
+  const PROBLEMS = [
+    {f:1,a:2},{f:2,a:3},{f:3,a:4},{f:4,a:5},{f:5,a:6},{f:6,a:7},{f:7,a:8},{f:8,a:9},
+    {f:9,a:'carry'},
+    {f:10,a:3},{f:11,a:4},{f:12,a:5},{f:13,a:6},{f:14,a:7},{f:15,a:8},{f:16,a:9},
+    {f:17,a:'carry'},{f:18,a:'carry'},
+    {f:19,a:4},{f:20,a:5},{f:21,a:6},{f:22,a:7},{f:23,a:8},{f:24,a:9},
+    {f:25,a:'carry'},{f:26,a:'carry'},{f:27,a:'carry'},
+    {f:28,a:5},{f:29,a:6},{f:30,a:7},{f:31,a:8},{f:32,a:9},
+    {f:33,a:'carry'},{f:34,a:'carry'},{f:35,a:'carry'},{f:36,a:'carry'},
+    {f:37,a:6},{f:38,a:7},{f:39,a:8},{f:40,a:9},
+    {f:41,a:'carry'},{f:42,a:'carry'},{f:43,a:'carry'},{f:44,a:'carry'},{f:45,a:'carry'},
+    {f:46,a:7},{f:47,a:8},{f:48,a:9},
+    {f:49,a:'carry'},{f:50,a:'carry'},{f:51,a:'carry'},{f:52,a:'carry'},{f:53,a:'carry'},{f:54,a:'carry'},
+    {f:55,a:8},{f:56,a:9},
+    {f:57,a:'carry'},{f:58,a:'carry'},{f:59,a:'carry'},{f:60,a:'carry'},{f:61,a:'carry'},{f:62,a:'carry'},{f:63,a:'carry'},
+    {f:64,a:9},
+    {f:65,a:'carry'},{f:66,a:'carry'},{f:67,a:'carry'},{f:68,a:'carry'},{f:69,a:'carry'},
+    {f:70,a:'carry'},{f:71,a:'carry'},{f:72,a:'carry'},
+    {f:73,a:'carry'},{f:74,a:'carry'},{f:75,a:'carry'},{f:76,a:'carry'},{f:77,a:'carry'},
+    {f:78,a:'carry'},{f:79,a:'carry'},{f:80,a:'carry'},{f:81,a:'carry'}
+  ];
+
+  const STORAGE_SOUND_KEY    = "kuriAgariSoundOn";
+  const STORAGE_BEST_30_KEY  = "kuriAgariBest30";
+  const STORAGE_BEST_NM_KEY  = "kuriAgariBestNoMiss";
+
+  // --- シャッフルデッキ ---
+  let deck = [];
+  let lastFile = -1;
+
+  function buildDeck() {
+    let arr = [...PROBLEMS];
+    // Fisher-Yates
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    // 直前と同じにならないよう先頭を調整
+    if (arr.length > 1 && arr[0].f === lastFile) {
+      const swap = Math.floor(Math.random() * (arr.length - 1)) + 1;
+      [arr[0], arr[swap]] = [arr[swap], arr[0]];
+    }
+    return arr;
+  }
+
+  function nextProblem() {
+    if (deck.length === 0) deck = buildDeck();
+    const p = deck.shift();
+    lastFile = p.f;
+    return p;
+  }
+
+  // --- 状態 ---
+  const state = {
+    mode: "practice",
+    current: null,
+    locked: false,
+    gameRunning: false,
+    gameBusy: false,
+    score: 0,
+    misses: 0,
+    best30:   Number(localStorage.getItem(STORAGE_BEST_30_KEY)  || 0),
+    bestNoMiss: Number(localStorage.getItem(STORAGE_BEST_NM_KEY) || 0),
+    soundOn: localStorage.getItem(STORAGE_SOUND_KEY) !== "off",
+    timerId: null,
+    nextId: null,
+    showResetButton: false,
+    lastResult: null
+  };
+
+  // --- DOM ---
+  const soundBtn        = document.getElementById("soundBtn");
+  const practiceModeBtn = document.getElementById("practiceModeBtn");
+  const challengeModeBtn= document.getElementById("challengeModeBtn");
+  const noMissModeBtn   = document.getElementById("noMissModeBtn");
+  const controls        = document.getElementById("controls");
+  const mainBtn         = document.getElementById("mainBtn");
+  const resultResetBtn  = document.getElementById("resultResetBtn");
+  const shakeTarget     = document.getElementById("shakeTarget");
+  const hissanImg       = document.getElementById("hissanImg");
+  const messageArea     = document.getElementById("messageArea");
+  const messageTitle    = document.getElementById("messageTitle");
+  const messageSub      = document.getElementById("messageSub");
+  const carryBtn        = document.getElementById("carryBtn");
+  const padContainer    = document.getElementById("pad");
+
+  // 数字ボタン 1〜9
+  const digitButtons = [];
+  for (let i = 1; i <= 9; i++) {
+    const btn = document.createElement("button");
+    btn.className = "digitBtn";
+    btn.type = "button";
+    btn.dataset.digit = i;
+    const img = document.createElement("img");
+    img.src = APPLE_BASE + String(i).padStart(2, "0") + ".png";
+    img.alt = String(i);
+    btn.appendChild(img);
+    padContainer.appendChild(btn);
+    digitButtons.push(btn);
+  }
+
+  // --- 音 ---
+  let audioCtx = null;
+  function getAudioCtx() {
+    const Cls = window.AudioContext || window.webkitAudioContext;
+    if (!Cls) return null;
+    if (!audioCtx) audioCtx = new Cls();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+  function beep({ freq=880, duration=0.08, type="sine", gain=0.03, when=0 }) {
+    if (!state.soundOn) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime + when;
+    const osc = ctx.createOscillator();
+    const amp = ctx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    amp.gain.setValueAtTime(0.0001, now);
+    amp.gain.exponentialRampToValueAtTime(gain, now + 0.01);
+    amp.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    osc.connect(amp); amp.connect(ctx.destination);
+    osc.start(now); osc.stop(now + duration + 0.02);
+  }
+  function playCorrect() {
+    beep({ freq:880,  duration:0.08, type:"sine", gain:0.035, when:0 });
+    beep({ freq:1320, duration:0.1,  type:"sine", gain:0.03,  when:0.08 });
+  }
+  function playWrong() {
+    beep({ freq:180, duration:0.12, type:"triangle", gain:0.03, when:0 });
+  }
+
+  // --- UI ヘルパー ---
+  function updateSoundButton() {
+    soundBtn.classList.toggle("off", !state.soundOn);
+    document.getElementById("soundIcon").textContent  = state.soundOn ? "🔊" : "🔇";
+    document.getElementById("soundLabel").textContent = state.soundOn ? "おと ON" : "おと OFF";
+  }
+
+  function setAllDisabled(disabled) {
+    digitButtons.forEach(b => b.disabled = disabled);
+    carryBtn.disabled = disabled;
+  }
+
+  function showMessage(title, sub) {
+    hissanImg.style.visibility = "hidden";
+    messageArea.classList.add("show");
+    messageTitle.textContent = title;
+    messageSub.textContent = sub;
+    resultResetBtn.classList.toggle("hidden", !state.showResetButton);
+  }
+
+  function showProblem() {
+    hissanImg.style.visibility = "visible";
+    messageArea.classList.remove("show");
+  }
+
+  function shakeCard() {
+    shakeTarget.classList.remove("shake");
+    void shakeTarget.offsetWidth;
+    shakeTarget.classList.add("shake");
+  }
+
+  function setProblem(p) {
+    state.current = p;
+    hissanImg.src = IMG_BASE + p.f + ".png";
+    showProblem();
+  }
+
+  function clearTimers() {
+    clearTimeout(state.nextId);
+    clearInterval(state.timerId);
+    state.nextId = null; state.timerId = null;
+  }
+
+  function getCurrentBest() {
+    if (state.mode === "challenge") return state.best30;
+    if (state.mode === "nomiss")    return state.bestNoMiss;
+    return 0;
+  }
+  function setCurrentBest(v) {
+    if (state.mode === "challenge") { state.best30 = v; localStorage.setItem(STORAGE_BEST_30_KEY, String(v)); }
+    else if (state.mode === "nomiss") { state.bestNoMiss = v; localStorage.setItem(STORAGE_BEST_NM_KEY, String(v)); }
+  }
+  function clearCurrentBest() {
+    if (state.mode === "challenge") { state.best30 = 0; localStorage.removeItem(STORAGE_BEST_30_KEY); }
+    else if (state.mode === "nomiss") { state.bestNoMiss = 0; localStorage.removeItem(STORAGE_BEST_NM_KEY); }
+  }
+
+  function buildReadyMessage() {
+    if (state.mode === "challenge") return { title:"30びょう", sub:"スタートで はじめるよ" };
+    if (state.mode === "nomiss")    return { title:"ノーミス\nモード", sub:"ミスしたら おわり" };
+    return { title:"", sub:"" };
+  }
+
+  function buildResultMessage(result, isReset=false) {
+    const title = `${result.score}もん\nできた！`;
+    if (state.mode === "challenge") {
+      if (isReset)          return { title, sub:`ミス ${result.misses}かい\nベストきろくを リセットしたよ` };
+      if (result.isNewBest) return { title, sub:`ミス ${result.misses}かい\nベスト こうしん！` };
+      return                       { title, sub:`ミス ${result.misses}かい\nベスト ${getCurrentBest()}もん` };
+    }
+    if (state.mode === "nomiss") {
+      if (isReset)          return { title, sub:`ミスで しゅうりょう\nベストきろくを リセットしたよ` };
+      if (result.isNewBest) return { title, sub:`ミスで しゅうりょう\nベスト こうしん！` };
+      return                       { title, sub:`ミスで しゅうりょう\nベスト ${getCurrentBest()}もん` };
+    }
+    return { title, sub:"" };
+  }
+
+  // --- モード制御 ---
+  function resetPractice() {
+    clearTimers();
+    state.gameRunning = false;
+    state.gameBusy = false;
+    state.locked = false;
+    state.showResetButton = false;
+    state.lastResult = null;
+    controls.classList.add("hidden");
+    setAllDisabled(false);
+    setProblem(nextProblem());
+  }
+
+  function resetGameReady() {
+    clearTimers();
+    state.gameRunning = false;
+    state.gameBusy = false;
+    state.locked = false;
+    state.score = 0;
+    state.misses = 0;
+    state.showResetButton = false;
+    state.lastResult = null;
+    controls.classList.remove("hidden");
+    mainBtn.disabled = false;
+    mainBtn.textContent = "スタート";
+    setAllDisabled(true);
+    const r = buildReadyMessage();
+    showMessage(r.title, r.sub);
+  }
+
+  function setMode(mode) {
+    clearTimers();
+    state.mode = mode;
+    practiceModeBtn.classList.toggle("active", mode === "practice");
+    challengeModeBtn.classList.toggle("active", mode === "challenge");
+    noMissModeBtn.classList.toggle("active", mode === "nomiss");
+    if (mode === "practice") resetPractice();
+    else resetGameReady();
+  }
+
+  function endGame() {
+    clearTimers();
+    state.gameRunning = false;
+    state.gameBusy = false;
+    setAllDisabled(true);
+    const prev = getCurrentBest();
+    const isNewBest = state.score > prev;
+    if (isNewBest) setCurrentBest(state.score);
+    state.lastResult = { mode: state.mode, score: state.score, misses: state.misses, isNewBest };
+    state.showResetButton = true;
+    const r = buildResultMessage(state.lastResult);
+    showMessage(r.title, r.sub);
+    mainBtn.disabled = false;
+    mainBtn.textContent = "もういちど";
+  }
+
+  function startGame() {
+    state.gameRunning = true;
+    state.gameBusy = false;
+    state.locked = false;
+    state.score = 0;
+    state.misses = 0;
+    state.showResetButton = false;
+    state.lastResult = null;
+    mainBtn.disabled = true;
+    mainBtn.textContent = "ちょうせん中";
+    setAllDisabled(false);
+    setProblem(nextProblem());
+    if (state.mode === "challenge") {
+      const endAt = Date.now() + 30000;
+      state.timerId = setInterval(() => {
+        if (Date.now() >= endAt) endGame();
+      }, 100);
+    }
+  }
+
+  // --- 回答処理 ---
+  function handleAnswer(selected) {
+    // selected: 1-9 or 'carry'
+    if (state.mode === "practice" && state.locked) return;
+    if (state.mode !== "practice" && (!state.gameRunning || state.gameBusy)) return;
+
+    const isCorrect = (selected === state.current.a);
+
+    if (state.mode === "practice") {
+      state.locked = true;
+      setAllDisabled(true);
+    } else {
+      state.gameBusy = true;
+      setAllDisabled(true);
+    }
+
+    if (isCorrect) {
+      if (state.mode !== "practice") state.score++;
+      playCorrect();
+      const delay = state.mode === "practice" ? 300 : 200;
+      state.nextId = setTimeout(() => {
+        if (state.mode === "practice") {
+          state.locked = false;
+        } else {
+          if (!state.gameRunning) return;
+          state.gameBusy = false;
+        }
+        setAllDisabled(false);
+        setProblem(nextProblem());
+      }, delay);
+    } else {
+      shakeCard();
+      playWrong();
+      if (state.mode === "challenge") {
+        state.misses++;
+        state.nextId = setTimeout(() => {
+          if (!state.gameRunning) return;
+          state.gameBusy = false;
+          setAllDisabled(false);
+        }, 250);
+      } else if (state.mode === "nomiss") {
+        state.nextId = setTimeout(() => endGame(), 250);
+      } else {
+        state.nextId = setTimeout(() => {
+          state.locked = false;
+          setAllDisabled(false);
+        }, 250);
+      }
+    }
+  }
+
+  // --- イベント ---
+  digitButtons.forEach(btn => {
+    btn.addEventListener("click", () => handleAnswer(Number(btn.dataset.digit)));
+  });
+
+  carryBtn.addEventListener("click", () => handleAnswer('carry'));
+
+  mainBtn.addEventListener("click", () => {
+    if (state.mode !== "practice" && !state.gameRunning) startGame();
+  });
+
+  practiceModeBtn.addEventListener("click",  () => { if (state.mode !== "practice")   setMode("practice");   });
+  challengeModeBtn.addEventListener("click", () => { if (state.mode !== "challenge")  setMode("challenge");  });
+  noMissModeBtn.addEventListener("click",    () => { if (state.mode !== "nomiss")     setMode("nomiss");     });
+
+  soundBtn.addEventListener("click", () => {
+    state.soundOn = !state.soundOn;
+    localStorage.setItem(STORAGE_SOUND_KEY, state.soundOn ? "on" : "off");
+    updateSoundButton();
+  });
+
+  resultResetBtn.addEventListener("click", () => {
+    clearCurrentBest();
+    state.showResetButton = false;
+    if (!state.lastResult) return;
+    const r = buildResultMessage(state.lastResult, true);
+    showMessage(r.title, r.sub);
+  });
+
+  // --- 初期化 ---
+  updateSoundButton();
+  setMode("practice");
+</script>
+</body>
+</html>
